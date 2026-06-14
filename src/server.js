@@ -4,6 +4,7 @@ import { errorHandler } from './middleware/errorMiddleware.js';
 
 import authRouter from './routes/authRoute.js'
 import boardRouter from './routes/boardRoute.js'
+import taskRouter from './routes/task.Route.js'
 
 // Connect to PostgreSQL database
 connectDB();
@@ -17,6 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/auth',authRouter);
 app.use('/board',boardRouter);
+app.use('/task',taskRouter);
 
 // Basic Health Check Route
 app.get('/', (req, res) => {

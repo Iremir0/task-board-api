@@ -115,4 +115,66 @@ const addCollaborator = async (req,res) => {
     }
 }
 
-export {createBoard, getBoards, getBoardById, updateBoard, deleteBoard, addCollaborator}
+//Get all tasks
+const getTasks = async (req,res) => {
+    const {id} = req.params
+    try {
+        const board = await prisma.board.findUnique({
+            where: {id},
+            include: {
+                tasks: true,
+                collaborators: {
+                    include:{
+                        user: {select: {id: true, email: true, name: true}}
+                    }
+                }
+            }
+        })
+
+        if(!board) return res.status(404).json({status:'error', message:'Board was not found'});
+        
+        const isCreator = req.user.id === board.createdById;
+        const isCollaborator = board.collaborators.some(c => c.userId === req.user.id)
+
+        if (!isCreator && !isCollaborator) return res.status(403).json({status: 'error', message:'Access denied'});
+
+        return res.status(200).json({status:'success',message:'Tasks returned',data:board.tasks})
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({status:'error',message:'Internal server error'})       
+    }
+}
+
+const createTask = async (req,res) => {
+    const {title,description,status,priority,dueDate,assigneeId} = req.body
+    const {id} = req.params
+    
+    try {
+        const task = await prisma.task.create({
+            data:{
+                title,
+                description,
+                status,
+                priority,
+                dueDate,
+                board: {
+                    connect: {id}
+                },
+                creator: {
+                    connect: {id: req.user.id}
+                },
+                ...(assigneeId && {
+                    assignee: {
+                        connect: { id: assigneeId }
+                    }
+                })
+            }
+        })
+        return res.status(201).json({status:'success',message:'Task is created', data: task})
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({status:'error',message:'Internal server error'})       
+    }
+}
+
+export {createBoard, getBoards, getBoardById, updateBoard, deleteBoard, addCollaborator, getTasks, createTask}
