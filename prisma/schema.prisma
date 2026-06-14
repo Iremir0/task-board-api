@@ -1,0 +1,80 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id             String              @id @default(uuid())
+  name           String
+  email          String              @unique
+  password       String
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  boardsCreated  Board[]             @relation("BoardCreator")
+  tasksCreated   Task[]              @relation("TaskCreator")
+  tasksAssigned  Task[]              @relation("TaskAssignee")
+  collaboratorOn BoardCollaborator[]
+}
+
+model Board {
+  id            String              @id @default(uuid())
+  name          String
+  description   String?
+  createdById   String
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  creator       User                @relation("BoardCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  tasks         Task[]
+  collaborators BoardCollaborator[]
+}
+
+model BoardCollaborator {
+  id        String   @id @default(uuid())
+  userId    String
+  boardId   String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, boardId])
+}
+
+model Task {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  boardId     String
+  createdById String
+  assigneeId  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  board       Board        @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  creator     User         @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  assignee    User?        @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
