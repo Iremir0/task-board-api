@@ -22,8 +22,12 @@ const register = async (req, res) => {
             }
         })
 
-        generateToken(user.id,res)
-        return res.status(201).json({status:'success',message:'User is created'})
+        const token = generateToken(user.id);
+        return res.status(201).json({
+            status:'success',
+            message:'User is created',
+            token
+        })
 
     } catch (error) {
         console.error('Registration error:', error);
@@ -46,8 +50,12 @@ const login = async (req,res) => {
             return res.status(404).json({status:'error',message:'Email or password is incorrect'})   
         }
 
-        generateToken(user.id,res)
-        res.status(200).json({status:'success',message:'User logged in'})   
+        const token = generateToken(user.id);
+        res.status(200).json({
+            status:'success',
+            message:'User logged in',
+            token
+        })   
     } catch (error) {
         console.error('Login error:', error);
         return res.status(500).json({ message: 'Internal Server Error' });
@@ -56,14 +64,10 @@ const login = async (req,res) => {
 
 const logout = async (req,res) => {
     try {
-        res.cookie('token', '', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            expires: new Date(0)
+        return res.status(200).json({
+            status: 'success',
+            message: 'Logged out successfully. Remove token on client side.'
         });
-
-        return res.status(200).json({ status: 'success', message: 'Logged out successfully' });
     } catch (error) {
         console.error('Logout error:', error);
         return res.status(500).json({ message: 'Internal Server Error' });

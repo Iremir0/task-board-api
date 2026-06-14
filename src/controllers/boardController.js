@@ -36,28 +36,8 @@ const getBoards = async (req,res) => {
 }
 
 const getBoardById = async (req,res) =>{
-    const {id} = req.params
     try {
-        const board = await prisma.board.findUnique({
-            where: {id},
-            include: {
-                tasks: true,
-                collaborators: {
-                    include:{
-                        user: {select: {id: true, email: true, name: true}}
-                    }
-                }
-            }
-        })
-
-        if(!board) return res.status(404).json({status:'error', message:'Board was not found'});
-        
-        const isCreator = req.user.id === board.createdById;
-        const isCollaborator = board.collaborators.some(c => c.userId === req.user.id)
-
-        if (!isCreator && !isCollaborator) return res.status(403).json({status: 'error', message:'Access denied'});
-        
-        return res.status(200).json({status:'success',message:'Board received',data:board})
+        return res.status(200).json({status:'success',message:'Board received',data:req.board})
     } catch (error) {
         console.log(error)
         return res.status(500).json({status:'error',message:'Internal server error'})       
@@ -65,13 +45,11 @@ const getBoardById = async (req,res) =>{
 }
 
 const updateBoard = async (req,res) => {
-    const {id} = req.params
     const {name, description} = req.body
-    const board = req.board
     try {
         const updatedBoard = await prisma.board.update(
             {
-                where: {id},
+                where: {id: req.board.id},
                 data: {name,description}
             },
         );
@@ -82,9 +60,8 @@ const updateBoard = async (req,res) => {
     }
 }
 const deleteBoard = async (req,res) => {
-    const {id} = req.params
     try {
-        const deletedBoard = await prisma.board.delete({where: {id}});
+        const deletedBoard = await prisma.board.delete({where: {id: req.board.id}});
 
         return res.status(200).json({status:'success',message:'Board deleted',data:deletedBoard})
         
@@ -117,28 +94,8 @@ const addCollaborator = async (req,res) => {
 
 //Get all tasks
 const getTasks = async (req,res) => {
-    const {id} = req.params
     try {
-        const board = await prisma.board.findUnique({
-            where: {id},
-            include: {
-                tasks: true,
-                collaborators: {
-                    include:{
-                        user: {select: {id: true, email: true, name: true}}
-                    }
-                }
-            }
-        })
-
-        if(!board) return res.status(404).json({status:'error', message:'Board was not found'});
-        
-        const isCreator = req.user.id === board.createdById;
-        const isCollaborator = board.collaborators.some(c => c.userId === req.user.id)
-
-        if (!isCreator && !isCollaborator) return res.status(403).json({status: 'error', message:'Access denied'});
-
-        return res.status(200).json({status:'success',message:'Tasks returned',data:board.tasks})
+        return res.status(200).json({status:'success',message:'Tasks returned',data:req.board.tasks})
     } catch (error) {
         console.log(error)
         return res.status(500).json({status:'error',message:'Internal server error'})       
@@ -147,7 +104,6 @@ const getTasks = async (req,res) => {
 
 const createTask = async (req,res) => {
     const {title,description,status,priority,dueDate,assigneeId} = req.body
-    const {id} = req.params
     
     try {
         const task = await prisma.task.create({
@@ -158,7 +114,7 @@ const createTask = async (req,res) => {
                 priority,
                 dueDate,
                 board: {
-                    connect: {id}
+                    connect: {id: req.board.id}
                 },
                 creator: {
                     connect: {id: req.user.id}
